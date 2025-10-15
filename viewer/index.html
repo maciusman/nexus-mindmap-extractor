@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus MindMap Viewer</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- React & ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel Standalone for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: #1a1a1a;
+            border-bottom: 1px solid #2a2a2a;
+            padding: 1rem 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo {
+            height: 48px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #a855f7;
+            margin: 0;
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #a855f7;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #9333ea;
+        }
+
+        .btn-secondary {
+            background: #374151;
+            color: #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .svg-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        .svg-canvas:active {
+            cursor: grabbing;
+        }
+
+        /* Controls */
+        .controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #1a1a1a;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: #2a2a2a;
+            color: #a855f7;
+        }
+
+        .control-divider {
+            height: 1px;
+            background: #374151;
+            margin: 4px 0;
+        }
+
+        .expand-all-btn {
+            width: auto;
+            padding: 8px 12px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        /* Info Badge */
+        .info-badge {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            background: #1a1a1a;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #d1d5db;
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: #a855f7;
+            font-weight: 700;
+        }
+
+        .info-hint {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+
+        /* Upload Container */
+        .upload-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 2rem;
+        }
+
+        .upload-box {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .upload-dropzone {
+            border: 2px dashed #4b5563;
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            background: #1a1a1a;
+            transition: all 0.2s;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+        }
+
+        .upload-dropzone:hover {
+            border-color: #a855f7;
+            background: rgba(168, 85, 247, 0.05);
+        }
+
+        .upload-dropzone.drag-active {
+            border-color: #a855f7;
+            background: rgba(168, 85, 247, 0.1);
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            color: #6b7280;
+        }
+
+        .upload-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #a855f7;
+            margin-bottom: 8px;
+        }
+
+        .upload-subtitle {
+            font-size: 14px;
+            color: #9ca3af;
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .sample-btn {
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .sample-link {
+            color: #a855f7;
+            text-decoration: underline;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .sample-link:hover {
+            color: #c084fc;
+        }
+
+        /* SVG Icons */
+        .icon {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2;
+            stroke: currentColor;
+            fill: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // SVG Icons as React components
+        const ZoomInIcon = () => (
+            <svg className="icon" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+        );
+
+        const ZoomOutIcon = () => (
+            <svg className="icon" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+        );
+
+        const MaximizeIcon = () => (
+            <svg className="icon" viewBox="0 0 24 24">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+        );
+
+        const DownloadIcon = () => (
+            <svg className="icon" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+        );
+
+        const UploadIcon = () => (
+            <svg className="icon" viewBox="0 0 24 24" style={{width: '64px', height: '64px'}}>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+        );
+
+        const XIcon = () => (
+            <svg className="icon" viewBox="0 0 24 24">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        );
+
+        // Helper functions
+        const getLevelColor = (depth) => {
+            const colors = [
+                { border: '#a855f7', text: '#c084fc', bg: '#581c87' },
+                { border: '#60a5fa', text: '#93c5fd', bg: '#1e3a8a' },
+                { border: '#22d3ee', text: '#67e8f9', bg: '#164e63' },
+                { border: '#34d399', text: '#6ee7b7', bg: '#065f46' },
+                { border: '#84cc16', text: '#bef264', bg: '#365314' },
+                { border: '#fbbf24', text: '#fcd34d', bg: '#78350f' },
+                { border: '#f97316', text: '#fb923c', bg: '#7c2d12' },
+                { border: '#ef4444', text: '#f87171', bg: '#7f1d1d' },
+            ];
+            return colors[depth % colors.length];
+        };
+
+        const wrapText = (text, maxLength = 24) => {
+            if (text.length <= maxLength) return [text];
+
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+
+            words.forEach(word => {
+                if ((currentLine + word).length <= maxLength) {
+                    currentLine += (currentLine ? ' ' : '') + word;
+                } else {
+                    if (currentLine) lines.push(currentLine);
+                    if (word.length > maxLength) {
+                        currentLine = word.substring(0, maxLength - 3) + '...';
+                    } else {
+                        currentLine = word;
+                    }
+                }
+            });
+
+            if (currentLine) lines.push(currentLine);
+            return lines.slice(0, 2);
+        };
+
+        const transformData = (notebookData) => {
+            const rootData = notebookData.data || notebookData;
+
+            const transform = (node, depth = 0) => {
+                if (!node) return null;
+
+                return {
+                    id: Math.random().toString(36).substr(2, 9),
+                    name: node.text || node.name || 'Unnamed',
+                    depth,
+                    children: (node.children || [])
+                        .map((child) => transform(child, depth + 1))
+                        .filter(Boolean),
+                    collapsed: depth >= 1
+                };
+            };
+
+            return transform(rootData);
+        };
+
+        const calculateLayout = (node, startX = 0, startY = 0) => {
+            const positions = [];
+            const horizontalSpacing = 370;
+            const verticalSpacing = 90;
+
+            const countVisibleNodes = (n) => {
+                if (!n) return 0;
+                if (!n.children || n.collapsed) return 1;
+
+                let count = 1;
+                n.children.forEach(child => {
+                    count += countVisibleNodes(child);
+                });
+                return count;
+            };
+
+            const layout = (n, x, y, parentPos = null) => {
+                if (!n) return y;
+
+                const pos = { node: n, x, y, level: n.depth };
+                positions.push(pos);
+
+                if (parentPos) {
+                    pos.parentX = parentPos.x;
+                    pos.parentY = parentPos.y;
+                }
+
+                if (!n.collapsed && n.children && n.children.length > 0) {
+                    const childrenHeight = n.children.reduce((total, child) => {
+                        return total + countVisibleNodes(child) * verticalSpacing;
+                    }, 0);
+
+                    let currentY = y - (childrenHeight / 2) + (verticalSpacing / 2);
+
+                    n.children.forEach(child => {
+                        const childHeight = countVisibleNodes(child) * verticalSpacing;
+                        const childCenterY = currentY + (childHeight / 2) - (verticalSpacing / 2);
+
+                        layout(child, x + horizontalSpacing, childCenterY, pos);
+                        currentY += childHeight;
+                    });
+                }
+
+                return y;
+            };
+
+            layout(node, startX, startY);
+            return positions;
+        };
+
+        // TreeNode Component
+        const TreeNode = ({ node, onToggle, x, y, level }) => {
+            const hasChildren = node.children && node.children.length > 0;
+            const lines = wrapText(node.name, 24);
+            const nodeHeight = Math.max(60, 30 + lines.length * 20);
+            const colors = getLevelColor(level);
+
+            const nodeWidth = 280;
+            const nodeX = -130;
+            const buttonAreaWidth = 40;
+            const textAreaWidth = nodeWidth - buttonAreaWidth - 20;
+
+            return (
+                <g transform={`translate(${x}, ${y})`}>
+                    <rect
+                        width={nodeWidth}
+                        height={nodeHeight}
+                        x={nodeX}
+                        y={-nodeHeight / 2}
+                        fill="#1a1a1a"
+                        stroke={colors.border}
+                        strokeWidth="2"
+                        rx="20"
+                        onClick={() => hasChildren && onToggle(node.id)}
+                        style={{
+                            cursor: hasChildren ? 'pointer' : 'default',
+                            transition: 'all 0.3s ease'
+                        }}
+                    />
+
+                    {lines.map((line, i) => (
+                        <text
+                            key={i}
+                            fill={colors.text}
+                            x={hasChildren ? nodeX + textAreaWidth / 2 + 10 : nodeX + nodeWidth / 2}
+                            y={(i * 20) - ((lines.length - 1) * 10)}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            style={{
+                                fontSize: '15px',
+                                fontWeight: '500',
+                                pointerEvents: 'none',
+                                fontFamily: 'Lato, system-ui, sans-serif'
+                            }}
+                        >
+                            {line}
+                        </text>
+                    ))}
+
+                    {hasChildren && (
+                        <g transform={`translate(${nodeX + nodeWidth - 25}, 0)`}>
+                            <circle
+                                cx="0"
+                                cy="0"
+                                r="14"
+                                fill={colors.bg}
+                                stroke={colors.border}
+                                strokeWidth="2"
+                                style={{ cursor: 'pointer' }}
+                            />
+                            <text
+                                fill={colors.text}
+                                x="0"
+                                y="5"
+                                textAnchor="middle"
+                                style={{
+                                    fontSize: '16px',
+                                    fontWeight: 'bold',
+                                    pointerEvents: 'none'
+                                }}
+                            >
+                                {node.collapsed ? '+' : '−'}
+                            </text>
+                        </g>
+                    )}
+                </g>
+            );
+        };
+
+        // Main App
+        function App() {
+            const [rawData, setRawData] = useState(null);
+            const [treeData, setTreeData] = useState(null);
+            const [zoom, setZoom] = useState(0.7);
+            const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+            const [isDragging, setIsDragging] = useState(false);
+            const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+            const [nodePositions, setNodePositions] = useState([]);
+            const svgRef = useRef(null);
+
+            useEffect(() => {
+                // Check for URL parameter data
+                const urlParams = new URLSearchParams(window.location.search);
+                const dataParam = urlParams.get('data');
+
+                if (dataParam) {
+                    try {
+                        const decoded = decodeURIComponent(atob(dataParam));
+                        const data = JSON.parse(decoded);
+                        handleFileLoad(data);
+                    } catch (error) {
+                        console.error('Failed to load data from URL:', error);
+                    }
+                }
+            }, []);
+
+            useEffect(() => {
+                if (treeData) {
+                    const positions = calculateLayout(treeData, 0, 0);
+                    setNodePositions(positions);
+                }
+            }, [treeData]);
+
+            const handleFileLoad = (data) => {
+                setRawData(data);
+                const transformed = transformData(data);
+                setTreeData(transformed);
+                setPanOffset({ x: 250, y: window.innerHeight / 2 });
+            };
+
+            const handleFileUpload = (file) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const jsonData = JSON.parse(e.target.result);
+                        handleFileLoad(jsonData);
+                    } catch (error) {
+                        alert('Failed to parse JSON: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            const handleToggle = (nodeId) => {
+                const deepClone = (node) => ({
+                    ...node,
+                    children: node.children ? node.children.map(deepClone) : []
+                });
+
+                const toggleNode = (node) => {
+                    if (node.id === nodeId) {
+                        return { ...node, collapsed: !node.collapsed };
+                    }
+                    if (node.children) {
+                        return {
+                            ...node,
+                            children: node.children.map(toggleNode)
+                        };
+                    }
+                    return node;
+                };
+
+                const cloned = deepClone(treeData);
+                const updated = toggleNode(cloned);
+                setTreeData(updated);
+            };
+
+            const handleExpandAll = () => {
+                const expandAll = (node) => ({
+                    ...node,
+                    collapsed: false,
+                    children: node.children ? node.children.map(expandAll) : []
+                });
+
+                if (treeData) {
+                    setTreeData(expandAll(treeData));
+                }
+            };
+
+            const handleDownloadJSON = () => {
+                if (!rawData) return;
+                const blob = new Blob([JSON.stringify(rawData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'mindmap.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const handleDownloadCSV = () => {
+                if (!rawData || !rawData.data) return;
+
+                const csv = convertToCSV(rawData.data);
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'mindmap.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const convertToCSV = (hierarchyData) => {
+                if (!hierarchyData || !hierarchyData.text) {
+                    throw new Error('Invalid data structure');
+                }
+
+                const rows = [];
+                let maxDepth = 0;
+
+                function flattenTree(node, depth = 0, path = []) {
+                    maxDepth = Math.max(maxDepth, depth);
+
+                    const row = {
+                        depth: depth,
+                        path: [...path, node.text].join(' > '),
+                        text: node.text,
+                        childrenCount: node.children?.length || 0,
+                        hasChildren: (node.children?.length || 0) > 0 ? 'YES' : 'NO',
+                    };
+
+                    for (let i = 0; i <= depth; i++) {
+                        row[`level_${i}`] = i === depth ? node.text : '';
+                    }
+
+                    rows.push(row);
+
+                    if (node.children && node.children.length > 0) {
+                        node.children.forEach(child => {
+                            flattenTree(child, depth + 1, [...path, node.text]);
+                        });
+                    }
+                }
+
+                flattenTree(hierarchyData);
+
+                const levelColumns = Array.from({ length: maxDepth + 1 }, (_, i) => `level_${i}`);
+                const headers = ['depth', 'path', 'text', 'childrenCount', 'hasChildren', ...levelColumns];
+
+                const csvRows = [headers.join(',')];
+
+                rows.forEach(row => {
+                    const values = headers.map(header => {
+                        const value = row[header] ?? '';
+                        const escaped = String(value).replace(/"/g, '""');
+                        return `"${escaped}"`;
+                    });
+                    csvRows.push(values.join(','));
+                });
+
+                return csvRows.join('\n');
+            };
+
+            const handleReset = () => {
+                setRawData(null);
+                setTreeData(null);
+                setZoom(0.7);
+                setPanOffset({ x: 0, y: 0 });
+                setNodePositions([]);
+            };
+
+            return (
+                <div className="app-container">
+                    <header className="header">
+                        <div className="header-content">
+                            <div className="header-title">
+                                <img src="logo.png" alt="Nexus Logo" className="header-logo" />
+                                <div>
+                                    <h1>Nexus MindMap Viewer</h1>
+                                    <p>Interactive visualization for NotebookLM Mind Maps</p>
+                                </div>
+                            </div>
+
+                            {treeData && (
+                                <div className="header-actions">
+                                    <button onClick={handleDownloadJSON} className="btn btn-primary">
+                                        <DownloadIcon />
+                                        Download JSON
+                                    </button>
+                                    <button onClick={handleDownloadCSV} className="btn btn-primary">
+                                        <DownloadIcon />
+                                        Download CSV
+                                    </button>
+                                    <button onClick={handleReset} className="btn btn-secondary">
+                                        <XIcon />
+                                        Close
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </header>
+
+                    <main className="main-content">
+                        {treeData ? (
+                            <>
+                                <svg
+                                    ref={svgRef}
+                                    className="svg-canvas"
+                                    onMouseDown={(e) => {
+                                        if (e.button === 0) {
+                                            setIsDragging(true);
+                                            setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+                                        }
+                                    }}
+                                    onMouseMove={(e) => {
+                                        if (isDragging) {
+                                            setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+                                        }
+                                    }}
+                                    onMouseUp={() => setIsDragging(false)}
+                                    onMouseLeave={() => setIsDragging(false)}
+                                    onWheel={(e) => {
+                                        e.preventDefault();
+                                        const delta = e.deltaY * -0.001;
+                                        const newZoom = Math.min(Math.max(0.1, zoom + delta), 2);
+                                        setZoom(newZoom);
+                                    }}
+                                >
+                                    <g transform={`translate(${panOffset.x}, ${panOffset.y}) scale(${zoom})`}>
+                                        {nodePositions.map((pos) => {
+                                            if (pos.parentX !== undefined) {
+                                                const colors = getLevelColor(pos.level);
+                                                const parentRightEdge = pos.parentX + 150;
+                                                const childLeftEdge = pos.x - 130;
+                                                const connectorLength = 20;
+
+                                                return (
+                                                    <g key={`conn-${pos.node.id}`}>
+                                                        <path
+                                                            d={`M ${parentRightEdge} ${pos.parentY} L ${parentRightEdge + 30} ${pos.parentY} L ${parentRightEdge + 30} ${pos.y} L ${childLeftEdge - connectorLength} ${pos.y}`}
+                                                            stroke={colors.border}
+                                                            strokeWidth="2"
+                                                            fill="none"
+                                                            opacity="0.5"
+                                                        />
+                                                        <line
+                                                            x1={childLeftEdge - connectorLength}
+                                                            y1={pos.y}
+                                                            x2={childLeftEdge}
+                                                            y2={pos.y}
+                                                            stroke={colors.border}
+                                                            strokeWidth="2"
+                                                            opacity="0.7"
+                                                        />
+                                                    </g>
+                                                );
+                                            }
+                                            return null;
+                                        })}
+
+                                        {nodePositions.map((pos) => (
+                                            <TreeNode
+                                                key={pos.node.id}
+                                                node={pos.node}
+                                                x={pos.x}
+                                                y={pos.y}
+                                                level={pos.level}
+                                                onToggle={handleToggle}
+                                            />
+                                        ))}
+                                    </g>
+                                </svg>
+
+                                <div className="controls">
+                                    <button className="control-btn" onClick={() => setZoom(Math.min(zoom * 1.2, 2))}>
+                                        <ZoomInIcon />
+                                    </button>
+                                    <button className="control-btn" onClick={() => setZoom(Math.max(zoom * 0.8, 0.1))}>
+                                        <ZoomOutIcon />
+                                    </button>
+                                    <button className="control-btn" onClick={() => {
+                                        setZoom(0.7);
+                                        setPanOffset({ x: 250, y: window.innerHeight / 2 });
+                                    }}>
+                                        <MaximizeIcon />
+                                    </button>
+                                    <div className="control-divider" />
+                                    <button className="control-btn expand-all-btn" onClick={handleExpandAll}>
+                                        EXPAND ALL
+                                    </button>
+                                </div>
+
+                                <div className="info-badge">
+                                    <div className="info-row">
+                                        <span>Total Nodes:</span>
+                                        <span className="info-value">{rawData?.metadata?.totalNodes || 'N/A'}</span>
+                                    </div>
+                                    <div className="info-hint">
+                                        Click +/− to expand/collapse • Drag to pan • Scroll to zoom
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="upload-container">
+                                <div className="upload-box">
+                                    <label className="upload-dropzone">
+                                        <UploadIcon />
+                                        <div className="upload-title">Upload JSON File</div>
+                                        <div className="upload-subtitle">
+                                            Drop your NotebookLM MindMap JSON here or click to browse
+                                        </div>
+                                        <input
+                                            type="file"
+                                            accept=".json"
+                                            className="upload-input"
+                                            onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (file) handleFileUpload(file);
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        // Render app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus MindMap Extractor</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <img src="../assets/logo-full.png" alt="Nexus Logo" class="logo">
+            <h1 class="title">Nexus MindMap Extractor</h1>
+        </header>
+
+        <!-- Status Bar -->
+        <div class="status-bar" id="statusBar">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <span class="status-text" id="statusText">Ready</span>
+        </div>
+
+        <!-- Domain Info -->
+        <div class="domain-info" id="domainInfo">
+            <span class="domain-label">Domain:</span>
+            <span class="domain-value" id="domainValue">-</span>
+        </div>
+
+        <!-- Main Actions -->
+        <div class="actions">
+            <!-- Expand All -->
+            <button class="btn btn-primary" id="expandBtn">
+                <span class="btn-icon">🌳</span>
+                <div class="btn-content">
+                    <span class="btn-label">Expand All Nodes</span>
+                    <span class="btn-hint">Rozwija całe drzewo mindmap</span>
+                </div>
+            </button>
+
+            <!-- Extract JSON -->
+            <button class="btn btn-secondary" id="extractJsonBtn">
+                <span class="btn-icon">📤</span>
+                <div class="btn-content">
+                    <span class="btn-label">Extract to JSON</span>
+                    <span class="btn-hint">Kopiuje JSON do schowka</span>
+                </div>
+            </button>
+
+            <!-- Extract CSV -->
+            <button class="btn btn-success" id="extractCsvBtn">
+                <span class="btn-icon">📊</span>
+                <div class="btn-content">
+                    <span class="btn-label">Extract to CSV</span>
+                    <span class="btn-hint">Gotowe dla Google Sheets</span>
+                </div>
+            </button>
+
+            <div class="divider"></div>
+
+            <!-- Open Viewer -->
+            <button class="btn btn-accent" id="viewerBtn">
+                <span class="btn-icon">👁️</span>
+                <div class="btn-content">
+                    <span class="btn-label">Open in Viewer</span>
+                    <span class="btn-hint">Wizualizacja interaktywna</span>
+                </div>
+            </button>
+        </div>
+
+        <!-- Footer Info -->
+        <footer class="footer">
+            <div class="footer-stats">
+                <span id="lastExport">No export yet</span>
+            </div>
+            <div class="footer-version">v1.0.0</div>
+        </footer>
+
+        <!-- Toast Notification -->
+        <div class="toast" id="toast">
+            <span class="toast-icon" id="toastIcon">✓</span>
+            <span class="toast-message" id="toastMessage"></span>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
