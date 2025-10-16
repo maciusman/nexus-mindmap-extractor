@@ -76,6 +76,34 @@
             margin-top: 4px;
         }
 
+        .linkedin-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 32px;
+            padding: 8px 16px;
+            background: rgba(96, 165, 250, 0.1);
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .linkedin-link:hover {
+            background: rgba(96, 165, 250, 0.2);
+        }
+
+        .linkedin-link span {
+            font-size: 14px;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+
+        .linkedin-icon {
+            height: 20px;
+            width: 20px;
+            object-fit: contain;
+        }
+
         .header-actions {
             display: flex;
             gap: 8px;
@@ -708,6 +736,10 @@
                                     <h1>Nexus MindMap Viewer</h1>
                                     <p>Interactive visualization for NotebookLM Mind Maps</p>
                                 </div>
+                                <a href="https://www.linkedin.com/in/walczuk-maciej/" target="_blank" rel="noopener noreferrer" className="linkedin-link">
+                                    <span>Link to author's page</span>
+                                    <img src="linkedin-icon.png" alt="LinkedIn" className="linkedin-icon" />
+                                </a>
                             </div>
 
                             {treeData && (
