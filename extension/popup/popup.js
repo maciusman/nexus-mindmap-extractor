@@ -419,21 +419,13 @@ async function handleAIAnalysis(analysisType) {
         const mindmapData = extractResponse.data.data;
         console.log('Mindmap data:', mindmapData);
 
-        // Send to background for AI analysis
+        // Send to content script for AI analysis (runs in page context - no CORS!)
         showToast('info', 'Analyzing with AI...', '🤖');
         
-        const result = await new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage({
-                action: 'aiAnalysis',
-                mindmapData: mindmapData,
-                analysisType: analysisType
-            }, (response) => {
-                if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError.message));
-                } else {
-                    resolve(response);
-                }
-            });
+        const result = await sendMessageToContent({
+            action: 'aiAnalysis',
+            mindmapData: mindmapData,
+            analysisType: analysisType
         });
 
         console.log('AI result:', result);

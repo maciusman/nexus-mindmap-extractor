@@ -129,6 +129,8 @@ async function handleAIAnalysis(mindmapData, analysisType) {
         
         const response = await fetch(`${baseURL}/chat/completions`, {
             method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`
@@ -136,7 +138,8 @@ async function handleAIAnalysis(mindmapData, analysisType) {
             body: JSON.stringify(requestBody)
         }).catch(fetchError => {
             console.error('❌ Fetch failed:', fetchError);
-            throw new Error(`Network error: ${fetchError.message}. Check internet connection and API endpoint.`);
+            console.error('💡 Hint: This might be a CORS issue. The API endpoint must support CORS for Chrome Extensions.');
+            throw new Error(`Network error: ${fetchError.message}. The API endpoint may not support CORS from browser extensions.`);
         });
 
         console.log('📥 Response status:', response.status, response.statusText);
