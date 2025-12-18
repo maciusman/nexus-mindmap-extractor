@@ -404,14 +404,13 @@
 
         function checkApiKey() {
             if (!GENSPARK_CONFIG.apiKey) {
-                const key = prompt('Enter your GenSpark API key (gsk_...):\n\nYou can get it from: https://www.genspark.ai/settings');
-                if (key) {
-                    GENSPARK_CONFIG.apiKey = key;
-                    localStorage.setItem('genspark_api_key', key);
-                    showToast('API key saved!', 'success');
-                } else {
-                    showToast('API key required for AI features', 'warning');
-                }
+                // Redirect to setup page if no API key found
+                showToast('⚠️ No API key found. Redirecting to setup...', 'warning');
+                setTimeout(() => {
+                    window.location.href = 'setup-crawler.html';
+                }, 2000);
+            } else {
+                showToast('✅ API key configured', 'success');
             }
         }
 
