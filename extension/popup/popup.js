@@ -8,11 +8,22 @@ const expandBtn = document.getElementById('expandBtn');
 const extractJsonBtn = document.getElementById('extractJsonBtn');
 const extractCsvBtn = document.getElementById('extractCsvBtn');
 const viewerBtn = document.getElementById('viewerBtn');
+const aiAnalysisBtn = document.getElementById('aiAnalysisBtn');
 const statusIndicator = document.getElementById('statusIndicator');
 const statusText = document.getElementById('statusText');
 const domainValue = document.getElementById('domainValue');
 const lastExport = document.getElementById('lastExport');
 const toast = document.getElementById('toast');
+
+// AI Modal Elements
+const aiModal = document.getElementById('aiModal');
+const modalClose = document.getElementById('modalClose');
+const analysisOptions = document.querySelectorAll('.analysis-option');
+const analysisLoading = document.getElementById('analysisLoading');
+const analysisResult = document.getElementById('analysisResult');
+const resultContent = document.getElementById('resultContent');
+const copyResult = document.getElementById('copyResult');
+const backBtn = document.getElementById('backBtn');
 
 // State
 let currentTab = null;
@@ -55,6 +66,18 @@ async function init() {
     extractJsonBtn.addEventListener('click', handleExtractJSON);
     extractCsvBtn.addEventListener('click', handleExtractCSV);
     viewerBtn.addEventListener('click', handleOpenViewer);
+    aiAnalysisBtn.addEventListener('click', handleOpenAIModal);
+    
+    // AI Modal listeners
+    modalClose.addEventListener('click', closeAIModal);
+    aiModal.addEventListener('click', (e) => {
+        if (e.target === aiModal) closeAIModal();
+    });
+    analysisOptions.forEach(option => {
+        option.addEventListener('click', () => handleAIAnalysis(option.dataset.type));
+    });
+    copyResult.addEventListener('click', handleCopyResult);
+    backBtn.addEventListener('click', resetAIModal);
 }
 
 // Button Handlers
@@ -351,4 +374,88 @@ async function compressData(data) {
     const jsonString = JSON.stringify(data);
     const encoded = btoa(encodeURIComponent(jsonString));
     return encoded;
+}
+
+// AI Analysis Functions
+function handleOpenAIModal() {
+    aiModal.style.display = 'flex';
+    analysisResult.style.display = 'none';
+    analysisLoading.style.display = 'none';
+}
+
+function closeAIModal() {
+    aiModal.style.display = 'none';
+    resetAIModal();
+}
+
+function resetAIModal() {
+    // Reset to options view
+    document.querySelector('.analysis-options').style.display = 'grid';
+    analysisResult.style.display = 'none';
+    analysisLoading.style.display = 'none';
+}
+
+async function handleAIAnalysis(analysisType) {
+    // Hide options, show loading
+    document.querySelector('.analysis-options').style.display = 'none';
+    analysisResult.style.display = 'none';
+    analysisLoading.style.display = 'block';
+
+    try {
+        // Extract current mindmap data
+        showToast('info', 'Extracting mindmap data...', 'ℹ');
+        const extractResponse = await sendMessageToContent({ action: 'extractJSON' });
+        
+        console.log('Extract response:', extractResponse);
+        
+        if (!extractResponse || !extractResponse.success) {
+            throw new Error('Failed to extract mindmap data. Make sure you are on a NotebookLM page with an open mindmap.');
+        }
+
+        if (!extractResponse.data || !extractResponse.data.data) {
+            throw new Error('Invalid mindmap data structure');
+        }
+
+        const mindmapData = extractResponse.data.data;
+        console.log('Mindmap data:', mindmapData);
+
+        // Send to content script for AI analysis (runs in page context - no CORS!)
+        showToast('info', 'Analyzing with AI...', '🤖');
+        
+        const result = await sendMessageToContent({
+            action: 'aiAnalysis',
+            mindmapData: mindmapData,
+            analysisType: analysisType
+        });
+
+        console.log('AI result:', result);
+
+        if (!result.success) {
+            throw new Error(result.error || 'AI analysis failed');
+        }
+
+        // Show result
+        analysisLoading.style.display = 'none';
+        analysisResult.style.display = 'block';
+        resultContent.textContent = result.analysis;
+        resultContent.style.color = '#e5e7eb'; // Reset color
+        showToast('success', '✓ Analysis completed!', '✓');
+
+    } catch (error) {
+        console.error('AI Analysis error:', error);
+        analysisLoading.style.display = 'none';
+        analysisResult.style.display = 'block';
+        resultContent.textContent = `❌ Σφάλμα: ${error.message}\n\nΒεβαιωθείτε ότι:\n1. Είστε σε σελίδα NotebookLM\n2. Έχετε ανοιχτό ένα mindmap\n3. Το mindmap έχει δεδομένα`;
+        resultContent.style.color = '#ef4444';
+        showToast('error', 'Analysis failed', '✗');
+    }
+}
+
+async function handleCopyResult() {
+    const text = resultContent.textContent;
+    await copyToClipboard(text);
+    copyResult.textContent = '✓ Copied!';
+    setTimeout(() => {
+        copyResult.textContent = '📋 Copy';
+    }, 2000);
 }

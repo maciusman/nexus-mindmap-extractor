@@ -37,6 +37,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             handleGetData().then(sendResponse);
             return true;
 
+        case 'aiAnalysis':
+            handleAIAnalysis(request.mindmapData, request.analysisType).then(sendResponse);
+            return true;
+
         default:
             sendResponse({ success: false, error: 'Unknown action' });
             return false;
@@ -82,5 +86,159 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         // Could inject content scripts here if needed
     }
 });
+
+// AI Analysis Handler
+async function handleAIAnalysis(mindmapData, analysisType) {
+    console.log('🤖 Starting AI analysis:', analysisType);
+    console.log('📊 Mindmap data:', mindmapData);
+    
+    try {
+        // Get API credentials from storage
+        const config = await chrome.storage.local.get(['openai_api_key', 'openai_base_url']);
+        const apiKey = config.openai_api_key || 'gsk-eyJjb2dlbl9pZCI6ICIyYjhjY2E4Ny03YzJjLTRhNDMtOWEzMC03ZjA2NzcxYWQwYWUiLCAia2V5X2lkIjogIjU0NzA2OTc1LTU3ZTctNDllOS05ZTU0LTNkY2JiNWM2ZDQ0MiJ9fFEp-1p1MyDUh_StQuOSM4530mHDXxfECbzca5ZkPYHD';
+        const baseURL = config.openai_base_url || 'https://www.genspark.ai/api/llm_proxy/v1';
+
+        console.log('🔑 API Key:', apiKey.substring(0, 30) + '...');
+        console.log('🌐 Base URL:', baseURL);
+
+        // Build prompt
+        const prompt = buildAIPrompt(mindmapData, analysisType);
+        console.log('📝 Prompt length:', prompt.length, 'chars');
+        
+        console.log('🔄 Calling OpenAI API...');
+        console.log('🎯 URL:', `${baseURL}/chat/completions`);
+        
+        // Make API call with detailed logging
+        const requestBody = {
+            model: 'gpt-5-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are an expert mindmap analyst. Analyze the provided mindmap structure and provide insights in Greek language.'
+                },
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 2000
+        };
+        
+        console.log('📤 Request body:', JSON.stringify(requestBody).substring(0, 200) + '...');
+        
+        const response = await fetch(`${baseURL}/chat/completions`, {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify(requestBody)
+        }).catch(fetchError => {
+            console.error('❌ Fetch failed:', fetchError);
+            console.error('💡 Hint: This might be a CORS issue. The API endpoint must support CORS for Chrome Extensions.');
+            throw new Error(`Network error: ${fetchError.message}. The API endpoint may not support CORS from browser extensions.`);
+        });
+
+        console.log('📥 Response status:', response.status, response.statusText);
+        console.log('📥 Response headers:', Array.from(response.headers.entries()));
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Error response body:', errorText);
+            
+            let errorData;
+            try {
+                errorData = JSON.parse(errorText);
+            } catch {
+                errorData = { message: errorText };
+            }
+            
+            throw new Error(`API Error ${response.status}: ${errorData.error?.message || errorData.message || response.statusText}`);
+        }
+
+        const responseText = await response.text();
+        console.log('📥 Response body length:', responseText.length);
+        
+        const data = JSON.parse(responseText);
+        
+        console.log('✅ AI analysis completed');
+        console.log('💬 Response preview:', data.choices[0].message.content.substring(0, 100) + '...');
+        
+        return {
+            success: true,
+            analysis: data.choices[0].message.content,
+            usage: data.usage
+        };
+
+    } catch (error) {
+        console.error('❌ AI Analysis error:', error);
+        console.error('❌ Error stack:', error.stack);
+        return {
+            success: false,
+            error: `${error.message}\n\nCheck background service worker console (chrome://extensions/) for details.`
+        };
+    }
+}
+
+function buildAIPrompt(mindmapData, analysisType) {
+    const structure = flattenMindmapForAI(mindmapData);
+    const nodeCount = structure.length;
+    const maxDepth = Math.max(...structure.map(n => n.depth), 0);
+
+    let prompt = `Ανάλυσε το παρακάτω mindmap που έχει ${nodeCount} κόμβους και ${maxDepth} επίπεδα βάθους.\n\n`;
+    prompt += `Δομή Mindmap:\n`;
+    prompt += formatStructureForAI(structure);
+    prompt += `\n\n`;
+
+    switch (analysisType) {
+        case 'summary':
+            prompt += `Παρέχω μια σύντομη περίληψη (2-3 παράγραφοι) των κύριων θεμάτων και της δομής.`;
+            break;
+        case 'insights':
+            prompt += `Βρες τα πιο σημαντικά insights και συνδέσεις μεταξύ των κόμβων. Ποια είναι τα κύρια θέματα;`;
+            break;
+        case 'questions':
+            prompt += `Δημιούργησε 5-7 ερωτήσεις κατανόησης που βασίζονται σε αυτό το mindmap.`;
+            break;
+        case 'expand':
+            prompt += `Πρότεινε 3-5 νέες ιδέες ή κόμβους που θα μπορούσαν να προστεθούν για να εμπλουτιστεί το mindmap.`;
+            break;
+        default:
+            prompt += `Ανέλυσε αυτό το mindmap και δώσε χρήσιμα insights.`;
+    }
+
+    return prompt;
+}
+
+function flattenMindmapForAI(node, depth = 0, result = []) {
+    if (!node) return result;
+    
+    result.push({
+        text: node.text || 'Untitled',
+        depth: depth,
+        childrenCount: node.children?.length || 0
+    });
+
+    if (node.children && Array.isArray(node.children)) {
+        node.children.forEach(child => {
+            flattenMindmapForAI(child, depth + 1, result);
+        });
+    }
+
+    return result;
+}
+
+function formatStructureForAI(structure) {
+    return structure
+        .map(node => {
+            const indent = '  '.repeat(node.depth);
+            const childInfo = node.childrenCount > 0 ? ` (${node.childrenCount} υποκόμβοι)` : '';
+            return `${indent}• ${node.text}${childInfo}`;
+        })
+        .join('\n');
+}
 
 console.log('✅ Background service worker ready');
