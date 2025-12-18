@@ -8,11 +8,21 @@ const expandBtn = document.getElementById('expandBtn');
 const extractJsonBtn = document.getElementById('extractJsonBtn');
 const extractCsvBtn = document.getElementById('extractCsvBtn');
 const viewerBtn = document.getElementById('viewerBtn');
+const aiAnalysisBtn = document.getElementById('aiAnalysisBtn');
 const statusIndicator = document.getElementById('statusIndicator');
 const statusText = document.getElementById('statusText');
 const domainValue = document.getElementById('domainValue');
 const lastExport = document.getElementById('lastExport');
 const toast = document.getElementById('toast');
+
+// AI Modal Elements
+const aiModal = document.getElementById('aiModal');
+const modalClose = document.getElementById('modalClose');
+const analysisOptions = document.querySelectorAll('.analysis-option');
+const analysisLoading = document.getElementById('analysisLoading');
+const analysisResult = document.getElementById('analysisResult');
+const resultContent = document.getElementById('resultContent');
+const copyResult = document.getElementById('copyResult');
 
 // State
 let currentTab = null;
@@ -55,6 +65,17 @@ async function init() {
     extractJsonBtn.addEventListener('click', handleExtractJSON);
     extractCsvBtn.addEventListener('click', handleExtractCSV);
     viewerBtn.addEventListener('click', handleOpenViewer);
+    aiAnalysisBtn.addEventListener('click', handleOpenAIModal);
+    
+    // AI Modal listeners
+    modalClose.addEventListener('click', closeAIModal);
+    aiModal.addEventListener('click', (e) => {
+        if (e.target === aiModal) closeAIModal();
+    });
+    analysisOptions.forEach(option => {
+        option.addEventListener('click', () => handleAIAnalysis(option.dataset.type));
+    });
+    copyResult.addEventListener('click', handleCopyResult);
 }
 
 // Button Handlers
@@ -351,4 +372,170 @@ async function compressData(data) {
     const jsonString = JSON.stringify(data);
     const encoded = btoa(encodeURIComponent(jsonString));
     return encoded;
+}
+
+// AI Analysis Functions
+function handleOpenAIModal() {
+    aiModal.style.display = 'flex';
+    analysisResult.style.display = 'none';
+    analysisLoading.style.display = 'none';
+}
+
+function closeAIModal() {
+    aiModal.style.display = 'none';
+}
+
+async function handleAIAnalysis(analysisType) {
+    // Hide options, show loading
+    document.querySelector('.analysis-options').style.display = 'none';
+    analysisResult.style.display = 'none';
+    analysisLoading.style.display = 'block';
+
+    try {
+        // Extract current mindmap data
+        const extractResponse = await sendMessageToContent({ action: 'extractJSON' });
+        
+        if (!extractResponse.success) {
+            throw new Error('Failed to extract mindmap data');
+        }
+
+        const mindmapData = extractResponse.data.data;
+
+        // Get API credentials
+        const config = await chrome.storage.local.get(['openai_api_key', 'openai_base_url']);
+        const apiKey = config.openai_api_key || 'gsk-eyJjb2dlbl9pZCI6ICIyYjhjY2E4Ny03YzJjLTRhNDMtOWEzMC03ZjA2NzcxYWQwYWUiLCAia2V5X2lkIjogIjU0NzA2OTc1LTU3ZTctNDllOS05ZTU0LTNkY2JiNWM2ZDQ0MiJ9fFEp-1p1MyDUh_StQuOSM4530mHDXxfECbzca5ZkPYHD';
+        const baseURL = config.openai_base_url || 'https://www.genspark.ai/api/llm_proxy/v1';
+
+        // Call OpenAI API
+        const result = await analyzeWithAI(mindmapData, analysisType, apiKey, baseURL);
+
+        if (!result.success) {
+            throw new Error(result.error || 'AI analysis failed');
+        }
+
+        // Show result
+        analysisLoading.style.display = 'none';
+        analysisResult.style.display = 'block';
+        resultContent.textContent = result.analysis;
+
+    } catch (error) {
+        console.error('AI Analysis error:', error);
+        analysisLoading.style.display = 'none';
+        analysisResult.style.display = 'block';
+        resultContent.textContent = `❌ Σφάλμα: ${error.message}`;
+        resultContent.style.color = '#ef4444';
+    }
+}
+
+async function analyzeWithAI(mindmapData, analysisType, apiKey, baseURL) {
+    const prompt = buildAIPrompt(mindmapData, analysisType);
+    
+    try {
+        const response = await fetch(`${baseURL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-5-mini',
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are an expert mindmap analyst. Analyze the provided mindmap structure and provide insights in Greek language.'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 2000
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`API Error ${response.status}: ${errorData.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        return {
+            success: true,
+            analysis: data.choices[0].message.content,
+            usage: data.usage
+        };
+
+    } catch (error) {
+        console.error('OpenAI API Error:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+function buildAIPrompt(mindmapData, analysisType) {
+    const structure = flattenMindmapForAI(mindmapData);
+    const nodeCount = structure.length;
+    const maxDepth = Math.max(...structure.map(n => n.depth));
+
+    let prompt = `Ανάλυσε το παρακάτω mindmap που έχει ${nodeCount} κόμβους και ${maxDepth} επίπεδα βάθους.\n\n`;
+    prompt += `Δομή Mindmap:\n`;
+    prompt += formatStructureForAI(structure);
+    prompt += `\n\n`;
+
+    switch (analysisType) {
+        case 'summary':
+            prompt += `Παρέχω μια σύντομη περίληψη (2-3 παράγραφοι) των κύριων θεμάτων και της δομής.`;
+            break;
+        case 'insights':
+            prompt += `Βρες τα πιο σημαντικά insights και συνδέσεις μεταξύ των κόμβων. Ποια είναι τα κύρια θέματα;`;
+            break;
+        case 'questions':
+            prompt += `Δημιούργησε 5-7 ερωτήσεις κατανόησης που βασίζονται σε αυτό το mindmap.`;
+            break;
+        case 'expand':
+            prompt += `Πρότεινε 3-5 νέες ιδέες ή κόμβους που θα μπορούσαν να προστεθούν για να εμπλουτιστεί το mindmap.`;
+            break;
+        default:
+            prompt += `Ανέλυσε αυτό το mindmap και δώσε χρήσιμα insights.`;
+    }
+
+    return prompt;
+}
+
+function flattenMindmapForAI(node, depth = 0, result = []) {
+    result.push({
+        text: node.text,
+        depth: depth,
+        childrenCount: node.children?.length || 0
+    });
+
+    if (node.children) {
+        node.children.forEach(child => {
+            flattenMindmapForAI(child, depth + 1, result);
+        });
+    }
+
+    return result;
+}
+
+function formatStructureForAI(structure) {
+    return structure
+        .map(node => {
+            const indent = '  '.repeat(node.depth);
+            const childInfo = node.childrenCount > 0 ? ` (${node.childrenCount} υποκόμβοι)` : '';
+            return `${indent}• ${node.text}${childInfo}`;
+        })
+        .join('\n');
+}
+
+async function handleCopyResult() {
+    const text = resultContent.textContent;
+    await copyToClipboard(text);
+    copyResult.textContent = '✓ Copied!';
+    setTimeout(() => {
+        copyResult.textContent = '📋 Copy';
+    }, 2000);
 }

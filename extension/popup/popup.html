@@ -65,6 +65,68 @@
                     <span class="btn-hint">Wizualizacja interaktywna</span>
                 </div>
             </button>
+
+            <!-- AI Analysis -->
+            <button class="btn btn-ai" id="aiAnalysisBtn">
+                <span class="btn-icon">🤖</span>
+                <div class="btn-content">
+                    <span class="btn-label">AI Analysis</span>
+                    <span class="btn-hint">Ανάλυση με τεχνητή νοημοσύνη</span>
+                </div>
+            </button>
+        </div>
+
+        <!-- AI Analysis Modal -->
+        <div class="modal" id="aiModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>🤖 AI Mindmap Analysis</h2>
+                    <button class="modal-close" id="modalClose">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="analysis-options">
+                        <button class="analysis-option" data-type="summary">
+                            <span>📝</span>
+                            <div>
+                                <strong>Περίληψη</strong>
+                                <small>Σύντομη περιγραφή του mindmap</small>
+                            </div>
+                        </button>
+                        <button class="analysis-option" data-type="insights">
+                            <span>💡</span>
+                            <div>
+                                <strong>Insights</strong>
+                                <small>Βασικά συμπεράσματα και συνδέσεις</small>
+                            </div>
+                        </button>
+                        <button class="analysis-option" data-type="questions">
+                            <span>❓</span>
+                            <div>
+                                <strong>Ερωτήσεις</strong>
+                                <small>Ερωτήσεις κατανόησης</small>
+                            </div>
+                        </button>
+                        <button class="analysis-option" data-type="expand">
+                            <span>🌱</span>
+                            <div>
+                                <strong>Επέκταση</strong>
+                                <small>Προτάσεις για νέους κόμβους</small>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="analysis-result" id="analysisResult" style="display: none;">
+                        <div class="result-header">
+                            <strong>Αποτέλεσμα:</strong>
+                            <button class="copy-result" id="copyResult">📋 Copy</button>
+                        </div>
+                        <div class="result-content" id="resultContent"></div>
+                    </div>
+                    <div class="analysis-loading" id="analysisLoading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Analyzing mindmap with AI...</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Footer Info -->
