@@ -90,6 +90,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 // AI Analysis Handler
 async function handleAIAnalysis(mindmapData, analysisType) {
     console.log('🤖 Starting AI analysis:', analysisType);
+    console.log('📊 Mindmap data:', mindmapData);
     
     try {
         // Get API credentials from storage
@@ -97,43 +98,71 @@ async function handleAIAnalysis(mindmapData, analysisType) {
         const apiKey = config.openai_api_key || 'gsk-eyJjb2dlbl9pZCI6ICIyYjhjY2E4Ny03YzJjLTRhNDMtOWEzMC03ZjA2NzcxYWQwYWUiLCAia2V5X2lkIjogIjU0NzA2OTc1LTU3ZTctNDllOS05ZTU0LTNkY2JiNWM2ZDQ0MiJ9fFEp-1p1MyDUh_StQuOSM4530mHDXxfECbzca5ZkPYHD';
         const baseURL = config.openai_base_url || 'https://www.genspark.ai/api/llm_proxy/v1';
 
+        console.log('🔑 API Key:', apiKey.substring(0, 30) + '...');
+        console.log('🌐 Base URL:', baseURL);
+
         // Build prompt
         const prompt = buildAIPrompt(mindmapData, analysisType);
+        console.log('📝 Prompt length:', prompt.length, 'chars');
         
         console.log('🔄 Calling OpenAI API...');
+        console.log('🎯 URL:', `${baseURL}/chat/completions`);
         
-        // Make API call
+        // Make API call with detailed logging
+        const requestBody = {
+            model: 'gpt-5-mini',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are an expert mindmap analyst. Analyze the provided mindmap structure and provide insights in Greek language.'
+                },
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 2000
+        };
+        
+        console.log('📤 Request body:', JSON.stringify(requestBody).substring(0, 200) + '...');
+        
         const response = await fetch(`${baseURL}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`
             },
-            body: JSON.stringify({
-                model: 'gpt-5-mini',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are an expert mindmap analyst. Analyze the provided mindmap structure and provide insights in Greek language.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                temperature: 0.7,
-                max_tokens: 2000
-            })
+            body: JSON.stringify(requestBody)
+        }).catch(fetchError => {
+            console.error('❌ Fetch failed:', fetchError);
+            throw new Error(`Network error: ${fetchError.message}. Check internet connection and API endpoint.`);
         });
 
+        console.log('📥 Response status:', response.status, response.statusText);
+        console.log('📥 Response headers:', Array.from(response.headers.entries()));
+
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(`API Error ${response.status}: ${errorData.error?.message || response.statusText}`);
+            const errorText = await response.text();
+            console.error('❌ Error response body:', errorText);
+            
+            let errorData;
+            try {
+                errorData = JSON.parse(errorText);
+            } catch {
+                errorData = { message: errorText };
+            }
+            
+            throw new Error(`API Error ${response.status}: ${errorData.error?.message || errorData.message || response.statusText}`);
         }
 
-        const data = await response.json();
+        const responseText = await response.text();
+        console.log('📥 Response body length:', responseText.length);
+        
+        const data = JSON.parse(responseText);
         
         console.log('✅ AI analysis completed');
+        console.log('💬 Response preview:', data.choices[0].message.content.substring(0, 100) + '...');
         
         return {
             success: true,
@@ -143,9 +172,10 @@ async function handleAIAnalysis(mindmapData, analysisType) {
 
     } catch (error) {
         console.error('❌ AI Analysis error:', error);
+        console.error('❌ Error stack:', error.stack);
         return {
             success: false,
-            error: error.message
+            error: `${error.message}\n\nCheck background service worker console (chrome://extensions/) for details.`
         };
     }
 }
