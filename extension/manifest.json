@@ -11,7 +11,8 @@
   ],
 
   "host_permissions": [
-    "https://notebooklm.google.com/*"
+    "https://notebooklm.google.com/*",
+    "https://www.genspark.ai/*"
   ],
 
   "action": {
