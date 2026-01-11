@@ -278,3 +278,7 @@ Masz pytania lub napotkałeś problem?
 **⭐ Jeśli projekt Ci się podoba, zostaw gwiazdkę na GitHub!**
 
 **🔗 Udostępnij**: Podziel się linkiem z innymi użytkownikami NotebookLM!
+
+**🔗 Opis narzędzia na moim blogu**: https://aiposition.pl/blog/aplikacje/nexus-mindmap-extractor-rozszerz-mozliwosci-grafow-wiedzy-w-google-notebooklm
+
+**🔗 Skontaktuj się ze mną na LinkedIn**: https://www.linkedin.com/in/walczuk-maciej/
