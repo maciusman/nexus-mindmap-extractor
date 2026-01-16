@@ -7,6 +7,7 @@ const VIEWER_URL = 'https://nexus-mindmap-extractor.netlify.app';
 const expandBtn = document.getElementById('expandBtn');
 const extractJsonBtn = document.getElementById('extractJsonBtn');
 const extractCsvBtn = document.getElementById('extractCsvBtn');
+const extractMdBtn = document.getElementById('extractMdBtn');
 const viewerBtn = document.getElementById('viewerBtn');
 const statusIndicator = document.getElementById('statusIndicator');
 const statusText = document.getElementById('statusText');
@@ -54,6 +55,7 @@ async function init() {
     expandBtn.addEventListener('click', handleExpandAll);
     extractJsonBtn.addEventListener('click', handleExtractJSON);
     extractCsvBtn.addEventListener('click', handleExtractCSV);
+    extractMdBtn.addEventListener('click', handleExtractMarkdown);
     viewerBtn.addEventListener('click', handleOpenViewer);
 }
 
@@ -259,6 +261,7 @@ function disableButtons() {
     expandBtn.disabled = true;
     extractJsonBtn.disabled = true;
     extractCsvBtn.disabled = true;
+    extractMdBtn.disabled = true;
     viewerBtn.disabled = true;
 }
 
@@ -275,6 +278,70 @@ function showToast(type, message, icon) {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 3000);
+}
+
+async function handleExtractMarkdown() {
+    setStatus('working', 'Converting to Markdown...');
+    setButtonLoading(extractMdBtn, true);
+
+    try {
+        // If no data, extract first
+        if (!lastExtractedData) {
+            const extractResponse = await sendMessageToContent({ action: 'extractJSON' });
+
+            if (!extractResponse.success) {
+                throw new Error(extractResponse.error || 'Extraction failed');
+            }
+
+            lastExtractedData = extractResponse.data;
+            await saveExtractedData(extractResponse.data);
+        }
+
+        // Convert to Markdown
+        const markdown = convertToMarkdown(lastExtractedData.data);
+
+        // Copy to clipboard
+        await copyToClipboard(markdown);
+
+        showToast('success', '✓ Markdown copied to clipboard!', '✓');
+        setStatus('ready', 'Ready');
+        updateLastExportInfo();
+    } catch (error) {
+        console.error('Markdown error:', error);
+        showToast('error', error.message || 'Markdown conversion failed', '✗');
+        setStatus('error', 'Error');
+    }
+
+    setButtonLoading(extractMdBtn, false);
+}
+
+// Markdown Conversion
+function convertToMarkdown(hierarchyData) {
+    if (!hierarchyData || !hierarchyData.text) {
+        throw new Error('Invalid data structure');
+    }
+
+    const lines = [];
+
+    // Root node as H1
+    lines.push(`# ${hierarchyData.text}`);
+    lines.push('');
+
+    // Recursively build nested list
+    function buildList(children, depth = 0) {
+        const indent = '  '.repeat(depth);
+        for (const child of children || []) {
+            lines.push(`${indent}- ${child.text}`);
+            if (child.children && child.children.length > 0) {
+                buildList(child.children, depth + 1);
+            }
+        }
+    }
+
+    buildList(hierarchyData.children);
+    lines.push('');
+
+    return lines.join('\n');
 }
 
 // CSV Conversion
