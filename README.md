@@ -21,6 +21,7 @@
 - **Extract to JSON** - Eksportuje strukturę do JSON (kopiuje do schowka)
 - **Extract to CSV** - Konwertuje dane do CSV dla Google Sheets
 - **Open in Viewer** - Otwiera interaktywny viewer z aktualnym widokiem mindmap
+- **🤖 AI Analysis** (NEW!) - Ανάλυση mindmap με τεχνητή νοημοσύνη (OpenAI)
 
 ### Standalone Viewer
 - Interaktywna wizualizacja hierarchii mindmap
@@ -110,6 +111,18 @@ Następnie wykonaj kroki 2-5 z powyższej instrukcji.
 1. Kliknij **"📤 Extract to JSON"**
 2. JSON jest skopiowany do schowka
 3. Możesz wkleić go gdzie chcesz (edytor tekstu, narzędzie do analizy, etc.)
+
+**Opcja D: AI Analysis (NEW!)** 🤖
+1. Kliknij **"🤖 AI Analysis"**
+2. Wybierz typ analizy:
+   - 📝 **Περίληψη** - Σύντομη περίληψη του mindmap
+   - 💡 **Insights** - Βασικά συμπεράσματα και συνδέσεις
+   - ❓ **Ερωτήσεις** - Ερωτήσεις κατανόησης
+   - 🌱 **Επέκταση** - Προτάσεις για νέους κόμβους
+3. Περίμενε 5-15 δευτερόλεπτα για το AI analysis
+4. Αντίγραψε το αποτέλεσμα με το κουμπί "Copy"
+
+Δες περισσότερα: [AI Features Documentation](docs/AI_FEATURES.md)
 
 ### ⚡ Ważne informacje
 
@@ -244,6 +257,7 @@ Szczegółowa dokumentacja znajduje się w folderze `docs/`:
 - **[INSTALLATION.md](docs/INSTALLATION.md)** - Szczegółowa instrukcja instalacji z troubleshooting
 - **[USAGE.md](docs/USAGE.md)** - Kompletny przewodnik użytkownika z przykładami
 - **[NETLIFY_DEPLOYMENT.md](docs/NETLIFY_DEPLOYMENT.md)** - Jak zdeployować własną instancję viewera
+- **[AI_FEATURES.md](docs/AI_FEATURES.md)** - 🤖 Οδηγός χρήσης AI Analysis features (NEW!)
 
 ## 🤝 Dla kontrybutorów
 

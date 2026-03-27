@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test OpenAI API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f0f0f;
+            color: #e0e0e0;
+        }
+        .container {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px solid #a855f7;
+        }
+        button {
+            background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #242424;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .loading {
+            color: #f97316;
+        }
+        .success {
+            color: #10b981;
+        }
+        .error {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 OpenAI API Test</h1>
+        <p>Test if the GenSpark OpenAI proxy works from browser</p>
+        
+        <button onclick="testAPI()">🚀 Test API</button>
+        <button onclick="testWithCORS()">🌐 Test with CORS mode</button>
+        <button onclick="clearResult()">🗑️ Clear</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_KEY = 'gsk-eyJjb2dlbl9pZCI6ICIyYjhjY2E4Ny03YzJjLTRhNDMtOWEzMC03ZjA2NzcxYWQwYWUiLCAia2V5X2lkIjogIjU0NzA2OTc1LTU3ZTctNDllOS05ZTU0LTNkY2JiNWM2ZDQ0MiJ9fFEp-1p1MyDUh_StQuOSM4530mHDXxfECbzca5ZkPYHD';
+        const BASE_URL = 'https://www.genspark.ai/api/llm_proxy/v1';
+
+        function log(message, type = 'info') {
+            const result = document.getElementById('result');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            result.innerHTML += `[${timestamp}] ${prefix} ${message}\n`;
+            result.className = type;
+        }
+
+        function clearResult() {
+            document.getElementById('result').innerHTML = '';
+        }
+
+        async function testAPI() {
+            clearResult();
+            log('Starting API test...', 'loading');
+            log(`API Key: ${API_KEY.substring(0, 30)}...`);
+            log(`Base URL: ${BASE_URL}`);
+            
+            try {
+                log('Sending request to OpenAI API...');
+                
+                const response = await fetch(`${BASE_URL}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-5-mini',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a helpful assistant.'
+                            },
+                            {
+                                role: 'user',
+                                content: 'Say "Hello! API is working!" in Greek.'
+                            }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 100
+                    })
+                });
+
+                log(`Response Status: ${response.status} ${response.statusText}`);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`Error Response: ${errorText}`, 'error');
+                    throw new Error(`API Error ${response.status}`);
+                }
+
+                const data = await response.json();
+                log('API Response received!', 'success');
+                log(`Model: ${data.model}`);
+                log(`Content: ${data.choices[0].message.content}`, 'success');
+                log(`Tokens Used: ${data.usage.total_tokens}`);
+                
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+            }
+        }
+
+        async function testWithCORS() {
+            clearResult();
+            log('Testing with CORS mode: no-cors...', 'loading');
+            
+            try {
+                const response = await fetch(`${BASE_URL}/chat/completions`, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-5-mini',
+                        messages: [
+                            { role: 'system', content: 'You are helpful.' },
+                            { role: 'user', content: 'Say hello in Greek.' }
+                        ],
+                        max_tokens: 50
+                    })
+                });
+
+                log(`Response Status: ${response.status}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('Success!', 'success');
+                    log(JSON.stringify(data, null, 2), 'success');
+                } else {
+                    const error = await response.text();
+                    log(`Error: ${error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Fetch Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
